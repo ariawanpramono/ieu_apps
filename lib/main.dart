@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'dart:async';
+import 'schedule_page.dart';
 
 void main() {
   runApp(const MyApp());
@@ -14,34 +15,53 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  // Variable baru menyimpan user
+  int _selectedIndex = 0;
   String namaUser = "Budi";
 
   final PageController _pageController = PageController(
     viewportFraction: 0.9,
-    initialPage: 1000
-    );
-  Timer? _timer; // Mulai dari angka besar agar langsung bisa digeser ke kiri/kanan
+    initialPage: 1000,
+  );
+  Timer? _timer;
 
   @override
   void initState() {
     super.initState();
-    // Nyalakan jam setiap 3 detik
     _timer = Timer.periodic(const Duration(seconds: 3), (Timer timer) {
-      _pageController.nextPage(
+      _pageController.nextPage
+      (
         duration: const Duration(milliseconds: 800),
         curve: Curves.easeInOut,
       );
+      if (_pageController.hasClients) 
+      {
+        _pageController.nextPage(
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeInOut,
+        );
+      }
     });
   }
 
-@override
+  @override
   void dispose() {
     _timer?.cancel();
     _pageController.dispose();
     super.dispose();
   }
 
+  // 1. KITA BUAT DAFTAR HALAMANNYA MENJADI GETTER AGAR BISA MEMBACA FUNGSI DI DALAM CLASS
+  List<Widget> get _widgetOptions => <Widget>[
+        _buildDashboard(),                           // Index 0: Memanggil fungsi Dashboard di bawah
+        SchedulePage(),                        // Index 1: Memanggil file schedule_page.dart
+        const Center(child: Text('Profile Page')),   // Index 2: Halaman Profil sementara
+      ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,107 +78,100 @@ class _MyAppState extends State<MyApp> {
           backgroundColor: Colors.grey[100],
           foregroundColor: Colors.black,
         ),
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                'Kelas Akan Datang',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-            
-            SizedBox(
-              height: 180, 
-              child: PageView.builder(
-                // Mulai dari angka besar agar langsung bisa digeser ke kiri/kanan
-                controller: _pageController, 
+        
+        // 2. KUNCI PERUBAHANNYA ADA DI SINI: Body sekarang menyesuaikan index yang diklik!
+        body: _widgetOptions.elementAt(_selectedIndex), 
 
-                // Baris "itemCount" dihapus agar jumlah layarnya jadi tak terhingga
-
-                itemBuilder: (context, index) {
-                  // Gunakan Modulo (%) untuk mengulang 5 jadwal kelas
-                  final int jumlahJadwal = 5;
-                  final int indexAsli = index % jumlahJadwal;
-
-                  return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(15),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
-                          blurRadius: 5,
-                          offset: const Offset(0, 3),
-                        )
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        // Kita gunakan indexAsli agar tulisannya selalu berulang dari 1 sampai 5
-                        'Jadwal Kelas ${indexAsli + 1}\n(08:00 - 10:00)',
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Agar jarak antar kotak rata
-              children: [
-                // 3 kotak menu
-                _buildMenuIcon(Icons.home_work, 'Home Work', Colors.orange),
-                _buildMenuIcon(Icons.quiz, 'Quiz', Colors.blue),
-                _buildMenuIcon(Icons.assignment, 'Exam', Colors.red),
-                        ],
-                      ),
-                    ),
-                ],
-        ),
-        // Slot khusus di bawah body
         bottomNavigationBar: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed, // Agar icon tidak goyang saat diklik
+          type: BottomNavigationBarType.fixed,
           selectedItemColor: Colors.blueAccent,
           unselectedItemColor: Colors.grey,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.newspaper), label: 'News'),
-            BottomNavigationBarItem(icon: Icon(Icons.notifications), label: 'Notif'), // Ide tambahan: Notifikasi
+            BottomNavigationBarItem(icon: Icon(Icons.calendar_month), label: 'Schedule'),
             BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
           ],
-        ), //BottomNavbar
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }
-  // Ini adalah "cetakan" untuk kotak menu Anda
-  Widget _buildMenuIcon(IconData icon, String label, Color warna) {
-  return Column(
-    children: [
-      Container(
-        width: 80, // Lebar kotak
-        height: 80, // Tinggi kotak
-        decoration: BoxDecoration(
-          color: warna.withOpacity(0.1), // Warna background transparan tipis
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: warna, width: 2), // Garis pinggir kotak
-        ),
-        child: Icon(icon, size: 40, color: warna),
-      ),
-      const SizedBox(height: 8),
-      Text(
-        label,
-        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-      ),
-    ],
-  );
-  } // _buildMenuIcon
 
-} //MyAppState extends State<MyApp>
+  // --- KODE DASHBOARD ANDA SAYA BUNGKUS KE DALAM FUNGSI INI ---
+  Widget _buildDashboard() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.all(16.0),
+          child: Text(
+            'Kelas Akan Datang',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        ),
+        SizedBox(
+          height: 180,
+          child: PageView.builder(
+            controller: _pageController,
+            itemBuilder: (context, index) {
+              final int jumlahJadwal = 3;
+              final int indexAsli = index % jumlahJadwal;
+              List<String> daftarGambar = [
+                'assets/kelas1.jpg',
+                'assets/kelas2.jpg',
+                'assets/kelas3.jpg',
+              ];
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8.0),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(15),
+                  image: DecorationImage(
+                    image: AssetImage(daftarGambar[indexAsli]),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 50),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildMenuIcon(Icons.home_work, 'Lesson', Colors.green),
+              _buildMenuIcon(Icons.quiz, 'Quiz', Colors.blue),
+              _buildMenuIcon(Icons.assignment, 'Exam', Colors.red),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  // --- FUNGSI KOTAK MENU ANDA ---
+  Widget _buildMenuIcon(IconData icon, String label, Color warna) {
+    return Column(
+      children: [
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: warna.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(15),
+            border: Border.all(color: warna, width: 2),
+          ),
+          child: Icon(icon, size: 40, color: warna),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+        ),
+      ],
+    );
+  }
+}
